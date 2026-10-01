@@ -12,6 +12,7 @@
 
 #include "game.h"
 #include "tga.h"
+#include "vr.h"
 
 
 /****************************/
@@ -133,6 +134,11 @@ void OGL_Boot(void)
 
 	GLC_Init();
 	SDL_Log("GL: %s / %s", glGetString(GL_VERSION), glGetString(GL_RENDERER));
+
+#if VR_ENABLED
+	if (VR_Init())
+		gGamePrefs.anaglyph = 0;			// the headset is our stereo 3D; anaglyph would also grey out textures
+#endif
 #else
 			/* GET GL PROCEDURES */
 			// Necessary on Windows
@@ -453,9 +459,94 @@ GLfloat	ambient[4];
 
 /******************* OGL DRAW SCENE *********************/
 
+#if VR_ENABLED
+// VR: the draw routine runs three times per frame: once per eye (3D world only),
+// then once more for the floating HUD layer (2D elements only).
+static void OGL_DrawScene_VR(void (*drawRoutine)(void))
+{
+	gGameWindowWidth = VR_UI_WIDTH;									// 2D layout = the HUD layer (4:3)
+	gGameWindowHeight = VR_UI_HEIGHT;
+	g2DLogicalRect = Get2DLogicalRect(1);
+	gCurrentAspectRatio = 1.0f;										// unused: projections come from the headset
+
+	if (VR_BeginFrame())
+	{
+		gPolysThisFrame 	= 0;
+		gMostRecentMaterial = nil;
+		gGlobalMaterialFlags = 0;
+		gGlobalTransparency = 1.0f;
+		SetColor4f(1,1,1,1);
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+		VR_ClearTargets();											// eyes get the scene's clear/fog color, HUD layer is transparent
+
+		OGL_Camera_SetPlacementAndUpdateMatrices();					// center-eye matrices (culling, sorting, billboards)
+
+		const float savedFPS = gFramesPerSecondFrac;
+		OGLMatrix4x4 centerView = gWorldToViewMatrix;
+		OGLMatrix4x4 centerProj = gViewToFrustumMatrix;
+
+		for (int pass = VR_PASS_EYE0; pass <= VR_PASS_UI; pass++)
+		{
+			VR_SetDrawPass(pass);
+			gMostRecentMaterial = nil;
+
+			if (pass != VR_PASS_EYE0)
+				gFramesPerSecondFrac = 0;							// draw-time animations must only advance once per frame
+
+			const GLfloat* eyeView = centerView.value;
+
+			if (pass == VR_PASS_UI)
+			{
+				VR_BindUITarget();
+				GLC_SetDrawFilter(GLC_DRAW_2D_ONLY);
+				glMatrixMode(GL_PROJECTION);
+				glLoadMatrixf(centerProj.value);
+				glMatrixMode(GL_MODELVIEW);
+				glLoadMatrixf(centerView.value);
+			}
+			else
+			{
+				eyeView = VR_GetEyeWorldToView(pass)->value;
+				VR_BindEyeTarget(pass);
+				GLC_SetDrawFilter(GLC_DRAW_3D_ONLY);
+				glMatrixMode(GL_PROJECTION);
+				glLoadMatrixf(VR_GetEyeViewToFrustum(pass)->value);
+				glMatrixMode(GL_MODELVIEW);
+				glLoadMatrixf(eyeView);
+				GLC_RebaseLights(centerView.value, eyeView);
+			}
+
+			if (drawRoutine)
+				drawRoutine();
+
+			if (pass != VR_PASS_UI)
+			{
+				VR_DrawPointer();
+				GLC_RebaseLights(eyeView, centerView.value);
+			}
+		}
+
+		gFramesPerSecondFrac = savedFPS;
+		GLC_SetDrawFilter(GLC_DRAW_ALL);
+		VR_SetDrawPass(VR_PASS_NONE);
+	}
+
+	VR_EndFrame(gGammaFadeFrac);									// the fade is applied by the compositor
+}
+#endif
+
 void OGL_DrawScene(void (*drawRoutine)(void))
 {
-	GAME_ASSERT(gGameView.isActive);					// make sure it's legit
+	GAME_ASSERT(gGameView.isActive);
+
+#if VR_ENABLED
+	if (VR_IsActive())
+	{
+		OGL_DrawScene_VR(drawRoutine);
+		return;
+	}
+#endif					// make sure it's legit
 	// aglSetCurrentContext(gGameView.drawContext);		// make context active
 
 
@@ -1292,6 +1383,33 @@ void OGL_Camera_SetPlacementAndUpdateMatrices(void)
 OGLLightDefType	*lights;
 
 
+#if VR_ENABLED
+	if (VR_IsActive())
+	{
+		// Chase camera on terrain levels: the VR rig decides the yaw (snap turns only).
+		// Tunnels, the balsa plane and cutscenes: yaw follows the game camera, horizon stays level.
+		bool useRigYaw = gInGameNow && gPlayerInfo.objNode
+				&& gLevelNum != LEVEL_NUM_PLUMBING
+				&& gLevelNum != LEVEL_NUM_GUTTER
+				&& gLevelNum != LEVEL_NUM_BALSA;
+
+		VR_ComputeCameraMatrices(
+				&gGameView.cameraPlacement.cameraLocation,
+				&gGameView.cameraPlacement.pointOfInterest,
+				gGameView.hither,
+				gGameView.yon,
+				useRigYaw,
+				&gWorldToViewMatrix,
+				&gViewToFrustumMatrix);
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadMatrixf(gViewToFrustumMatrix.value);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadMatrixf(gWorldToViewMatrix.value);
+	}
+	else
+#endif
+	{
 			/* INIT PROJECTION MATRIX */
 
 	glMatrixMode(GL_PROJECTION);
@@ -1348,6 +1466,7 @@ OGLLightDefType	*lights;
 			&gGameView.cameraPlacement.upVector);
 
 	glLoadMatrixf(gWorldToViewMatrix.value);
+	}
 
 		/* UPDATE LIGHT POSITIONS */
 

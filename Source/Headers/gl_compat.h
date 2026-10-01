@@ -160,7 +160,12 @@ void GLC_End(void);
 void GLC_TexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei w, GLsizei h, GLint border, GLenum format, GLenum type, const void* pixels);
 void GLC_TexSubImage2D(GLenum target, GLint level, GLint x, GLint y, GLsizei w, GLsizei h, GLenum format, GLenum type, const void* pixels);
 void GLC_ReadPixels(GLint x, GLint y, GLsizei w, GLsizei h, GLenum format, GLenum type, void* pixels);
-void GLC_DebugSnapshot(int w, int h);		// desktop test builds: dump frames listed in $GLC_SNAPSHOT_FRAMES to /tmp
+void GLC_DebugSnapshot(int w, int h);
+
+// VR: the game draws 3D world and 2D HUD in one pass. Each VR pass keeps only one kind:
+// draws with an orthographic projection count as 2D, perspective ones as 3D.
+enum { GLC_DRAW_ALL, GLC_DRAW_3D_ONLY, GLC_DRAW_2D_ONLY };
+void GLC_SetDrawFilter(int filter);		// desktop test builds: dump frames listed in $GLC_SNAPSHOT_FRAMES to /tmp
 
 // GLCompat.c and the VR code must call the real GLES functions
 #ifndef GLC_IMPLEMENTATION

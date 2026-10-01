@@ -11,6 +11,7 @@
 /****************************/
 
 #include "game.h"
+#include "vr.h"
 
 
 /****************************/
@@ -101,6 +102,9 @@ static const Byte	gFlareImageTable[]=
 
 static void DrawLensFlare(ObjNode* theNode)
 {
+	if (VR_IsActive())		// screen-space effect; can't work per eye (and GLES can't test sun occlusion)
+		return;
+
 float			x,y,dot;
 OGLPoint3D		sunScreenCoord,from;
 OGLVector3D		axis,lookAtVector,sunVector;
@@ -312,6 +316,10 @@ ObjNode	*playerObj = gPlayerInfo.objNode;
 		dx = sin(r) * gCameraDistFromMe;
 		dz = cos(r) * gCameraDistFromMe;
 
+#if VR_ENABLED
+		VR_SetRigYaw(r);													// VR rig starts out behind the player, like the camera
+#endif
+
 		x = gGameView.cameraPlacement.cameraLocation.x = playerObj->Coord.x + dx;
 		z = gGameView.cameraPlacement.cameraLocation.z = playerObj->Coord.z + dz;
 		gGameView.cameraPlacement.cameraLocation.y = GetTerrainY(x, z) + 200.0f;
@@ -465,6 +473,16 @@ Boolean			snapTo = false;
 	pToC.x = oldCamX - myX;												// calc player->camera vector
 	pToC.y = oldCamZ - myZ;
 	OGLVector2D_Normalize(&pToC,&pToC);									// normalize it
+
+#if VR_ENABLED
+	if (VR_IsActive())
+	{
+		// In VR, the camera's direction around the player is dictated by the VR rig,
+		// which only turns in discrete snap turns. This avoids nauseating smooth rotations.
+		pToC.x = sinf(VR_GetRigYaw());
+		pToC.y = cosf(VR_GetRigYaw());
+	}
+#endif
 
 
 			/*****************************/
@@ -654,6 +672,11 @@ Boolean			snapTo = false;
 
 		target.x = myX + (pToC.x * dist);									// target is appropriate dist based on cam's current coord
 		target.z = myZ + (pToC.y * dist);
+
+#if VR_ENABLED
+		if (VR_IsActive() && VR_ConsumeSnapTurn())
+			snapTo = true;													// teleport the camera after a snap turn instead of swinging it
+#endif
 
 got_target:
 				/* MOVE CAMERA TOWARDS POINT */

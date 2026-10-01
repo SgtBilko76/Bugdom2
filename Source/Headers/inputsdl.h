@@ -88,6 +88,7 @@ Boolean IsCheatKeyComboDown(void);
 
 int GetNumControllers(void);
 SDL_Gamepad* GetGamepad(void);
+void ForceGamepad(SDL_JoystickID joystickID);		// VR: switch to the controllers' virtual gamepad
 void SetMainController(int oldControllerSlot);
 void Rumble(float lowFrequencyStrength, float highFrequencyStrength, uint32_t ms);
 

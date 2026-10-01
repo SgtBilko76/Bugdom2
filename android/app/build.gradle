@@ -12,7 +12,7 @@ android {
         minSdk 29
         targetSdk 32            // Meta Horizon OS expects targetSdk 32
         versionCode 1
-        versionName '4.0.1-vr-dev'
+        versionName '4.0.1-vr-beta1'
         externalNativeBuild {
             cmake {
                 arguments '-DBUILD_SDL_FROM_SOURCE=ON',

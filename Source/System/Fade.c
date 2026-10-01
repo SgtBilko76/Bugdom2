@@ -9,6 +9,7 @@
 /***************/
 
 #include	"game.h"
+#include	"vr.h"
 
 
 /****************************/
@@ -214,6 +215,9 @@ static void MoveFadePane(ObjNode *theNode)
 static void DrawFadePane(ObjNode* theNode)
 {
 	(void) theNode;
+
+	if (VR_IsActive())		// VR_EndFrame fades the whole view (both eyes & HUD) instead
+		return;
 
 	OGL_PushState();
 	SetInfobarSpriteState();	// (0, 1);

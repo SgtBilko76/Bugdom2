@@ -10,6 +10,7 @@
 /***************/
 
 #include "game.h"
+#include "vr.h"
 
 
 /****************************/
@@ -907,6 +908,11 @@ Boolean			superTileVisible;
 
 	(void) theNode;
 
+#if VR_ENABLED
+	if (VR_IsActive() && VR_GetDrawPass() == VR_PASS_UI)		// terrain is 3D only; must not run the supertile bookkeeping again
+		return;
+#endif
+
 				/**************/
 				/* DRAW STUFF */
 				/**************/
@@ -941,7 +947,7 @@ Boolean			superTileVisible;
 
 						/* SEE IF DELAY HICCUP TIMER */
 
-				if (gSuperTileMemoryList[i].hiccupTimer)
+				if (gSuperTileMemoryList[i].hiccupTimer && !VR_IsActive())		// in VR, both eyes must draw the same supertiles
 				{
 					gSuperTileMemoryList[i].hiccupTimer--;
 					continue;
@@ -986,6 +992,17 @@ Boolean			superTileVisible;
 		/*********************************************/
 		/* PREPARE SUPERTILE GRID FOR THE NEXT FRAME */
 		/*********************************************/
+		//
+		// With stereo (anaglyph or VR), DrawTerrain runs once per eye: only clean up after the last eye.
+		//
+
+	bool lastPass = (!gGamePrefs.anaglyph) || (gAnaglyphPass > 0);
+#if VR_ENABLED
+	if (VR_IsActive())
+		lastPass = (VR_GetDrawPass() == VR_PASS_EYE1);
+#endif
+	if (!lastPass)
+		return;
 
 	for (r = 0; r < gNumSuperTilesDeep; r++)
 	{
@@ -1004,8 +1021,7 @@ Boolean			superTileVisible;
 
 				/* ASSUME SUPERTILES WILL BE UNUSED ON NEXT FRAME */
 
-			if ((!gGamePrefs.anaglyph) || (gAnaglyphPass > 0))
-				gSuperTileStatusGrid[r][c].statusFlags &= ~SUPERTILE_IS_USED_THIS_FRAME;			// clear the isUsed bit
+			gSuperTileStatusGrid[r][c].statusFlags &= ~SUPERTILE_IS_USED_THIS_FRAME;			// clear the isUsed bit
 
 		}
 	}

@@ -119,6 +119,8 @@ static struct
 	GLenum		blendSrc;
 	GLenum		blendDst;
 
+	int			drawFilter;
+
 	int			activeUnit;
 	int			clientActiveUnit;
 	TexUnit		units[NUM_UNITS];
@@ -919,6 +921,22 @@ void GLC_RebaseLights(const GLfloat* a, const GLfloat* b)
 
 #pragma mark - Drawing
 
+void GLC_SetDrawFilter(int filter)
+{
+	gGLC.drawFilter = filter;
+}
+
+static bool PassesDrawFilter(void)
+{
+	if (gGLC.drawFilter == GLC_DRAW_ALL)
+		return true;
+
+	const GLfloat* proj = gGLC.projection[gGLC.projectionTop];
+	bool isOrtho = proj[11] == 0.0f;		// perspective projections have -1 here
+
+	return (gGLC.drawFilter == GLC_DRAW_2D_ONLY) == isOrtho;
+}
+
 static int EnvCode(const TexUnit* tu)
 {
 	switch (tu->envMode)
@@ -1067,6 +1085,8 @@ static void ApplyState(void)
 
 void GLC_DrawElements(GLenum mode, GLsizei count, GLenum type, const void* indices)
 {
+	if (!PassesDrawFilter())
+		return;
 	ApplyState();
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -1075,6 +1095,8 @@ void GLC_DrawElements(GLenum mode, GLsizei count, GLenum type, const void* indic
 
 void GLC_DrawArrays(GLenum mode, GLint first, GLsizei count)
 {
+	if (!PassesDrawFilter())
+		return;
 	ApplyState();
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDrawArrays(mode, first, count);
@@ -1110,7 +1132,7 @@ void GLC_End(void)
 {
 	int count = gGLC.immediateCount;
 	gGLC.immediateCount = 0;
-	if (count == 0)
+	if (count == 0 || !PassesDrawFilter())
 		return;
 
 	GLenum mode = gGLC.immediateMode;

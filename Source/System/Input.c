@@ -674,6 +674,13 @@ static void CloseGamepad(void)
 	gGamepad.hasRumble = false;
 }
 
+void ForceGamepad(SDL_JoystickID joystickID)
+{
+	if (gGamepad.open)
+		CloseGamepad();
+	TryOpenGamepadFromJoystick(joystickID);
+}
+
 static void OnJoystickRemoved(SDL_JoystickID joystickID)
 {
 	if (gGamepad.open && SDL_GetGamepadID(gGamepad.sdlGamepad) == joystickID)		// we're using this joystick
