@@ -9,3 +9,10 @@ dist/
 .idea/
 .DS_Store
 *.user
+
+# Android build outputs / local SDK path
+android/.gradle/
+android/app/build/
+android/app/.cxx/
+android/local.properties
+build-gles/

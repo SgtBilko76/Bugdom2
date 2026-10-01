@@ -186,6 +186,9 @@ static void PlayGame(void)
 
 				/* DO LEVEL INTRO */
 
+#if GLC_ENABLED && !__ANDROID__
+		if (!SDL_getenv("GLC_TEST_LEVEL"))		// desktop GLES test build: skip straight to gameplay
+#endif
 		DoLevelIntro();
 
 		MyFlushEvents();
@@ -1049,6 +1052,18 @@ unsigned long	someLong;
 
 	// Load some global sprites
 	PreloadGlobalSprites();
+
+#if GLC_ENABLED && !__ANDROID__
+		/* DESKTOP GLES TEST BUILD: JUMP STRAIGHT INTO A LEVEL (GLC_TEST_LEVEL=0..9) */
+
+	const char* testLevel = SDL_getenv("GLC_TEST_LEVEL");
+	if (testLevel)
+	{
+		gLevelNum = SDL_atoi(testLevel);
+		PlayGame();
+		ExitToShell();
+	}
+#endif
 
 #if !SKIPFLUFF
 		/* SHOW TITLES */

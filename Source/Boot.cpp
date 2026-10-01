@@ -22,6 +22,14 @@ static fs::path FindGameData(const char* executablePath)
 {
 	fs::path dataPath;
 
+#if __ANDROID__
+	// The Java activity extracts the APK's assets to internal storage before starting the game
+	(void) executablePath;
+	dataPath = fs::path(SDL_GetAndroidInternalStoragePath()) / "Data";
+	gDataSpec = Pomme::Files::HostPathToFSSpec(dataPath / "System");
+	return dataPath;
+#endif
+
 	int attemptNum = 0;
 
 #if !(__APPLE__)
@@ -78,6 +86,11 @@ static void Boot(int argc, char** argv)
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
 #endif
 
+#if __ANDROID__
+	// Pomme stores prefs & saved games in $XDG_CONFIG_HOME
+	setenv("XDG_CONFIG_HOME", SDL_GetAndroidInternalStoragePath(), 1);
+#endif
+
 	// Start our "machine"
 	Pomme::Init();
 
@@ -96,9 +109,16 @@ retryVideo:
 	}
 
 	// Create window
+#if GLC_ENABLED
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+#else
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
 
 	gCurrentAntialiasingLevel = gGamePrefs.antialiasingLevel;
 	if (gCurrentAntialiasingLevel != 0)
@@ -124,7 +144,7 @@ retryVideo:
 		}
 		else
 		{
-			throw std::runtime_error("Couldn't create SDL window.");
+			throw std::runtime_error(std::string("Couldn't create SDL window: ") + SDL_GetError());
 		}
 	}
 

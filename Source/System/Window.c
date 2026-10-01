@@ -105,6 +105,10 @@ int GetNumDisplays(void)
 
 void MoveToPreferredDisplay(void)
 {
+#if __ANDROID__
+	return;		// the Android activity is always fullscreen; there are no displays to choose from
+#endif
+
 	if (gGamePrefs.displayNumMinus1 >= GetNumDisplays())
 	{
 		gGamePrefs.displayNumMinus1 = 0;
@@ -127,6 +131,12 @@ void MoveToPreferredDisplay(void)
 
 void SetFullscreenMode(bool enforceDisplayPref)
 {
+#if __ANDROID__
+	(void) enforceDisplayPref;
+	SDL_GL_SetSwapInterval(gGamePrefs.vsync);
+	return;
+#endif
+
 	if (!gGamePrefs.fullscreen)
 	{
 		SDL_SetWindowFullscreen(gSDLWindow, 0);

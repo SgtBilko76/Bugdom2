@@ -1,0 +1,72 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'io.jor.bugdom2'
+    compileSdk 34
+    ndkVersion '27.2.12479018'
+
+    defaultConfig {
+        applicationId 'io.jor.bugdom2'
+        minSdk 29
+        targetSdk 32            // Meta Horizon OS expects targetSdk 32
+        versionCode 1
+        versionName '4.0.1-vr-dev'
+        externalNativeBuild {
+            cmake {
+                arguments '-DBUILD_SDL_FROM_SOURCE=ON',
+                          '-DSDL_STATIC=OFF',
+                          '-DANDROID_STL=c++_shared'
+                abiFilters 'arm64-v8a'
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            externalNativeBuild { cmake { arguments '-DCMAKE_BUILD_TYPE=RelWithDebInfo' } }
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug      // sideload-only build
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path '../../CMakeLists.txt'
+            version '3.31.6'
+        }
+    }
+
+    sourceSets.main {
+        // Reuse SDL's Java glue straight from the SDL source tree
+        java.srcDirs += '../../extern/SDL/android-project/app/src/main/java'
+        assets.srcDirs = ["$buildDir/generated/gameassets"]
+    }
+
+    aaptOptions {
+        noCompress 'rsrc', 'aiff', 'bin'
+    }
+
+    lint {
+        abortOnError false
+    }
+
+    buildFeatures {
+        prefab true
+    }
+}
+
+dependencies {
+    // Khronos OpenXR loader (exposes OpenXR::openxr_loader to CMake via prefab)
+    implementation 'org.khronos.openxr:openxr_loader_for_android:1.1.63'
+}
+
+// Package the game's Data folder as APK assets under "Data/"
+tasks.register('copyGameData', Copy) {
+    from '../../Data'
+    into "$buildDir/generated/gameassets/Data"
+}
+preBuild.dependsOn copyGameData

@@ -2,8 +2,7 @@
 
 #include "Pomme.h"
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_opengl.h>
-#include <SDL3/SDL_opengl_glext.h>
+#include "gl_compat.h"			// desktop OpenGL, or the GLES fixed-function emulation on Android
 #include <stdint.h>
 
 #if !defined(__LITTLE_ENDIAN__) && !(__BIG_ENDIAN__)

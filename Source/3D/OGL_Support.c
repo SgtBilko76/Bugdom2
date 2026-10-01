@@ -18,8 +18,10 @@
 /*    PROTOTYPES            */
 /****************************/
 
+#if !GLC_ENABLED
 PFNGLACTIVETEXTUREPROC gGlActiveTextureProc;
 PFNGLCLIENTACTIVETEXTUREARBPROC gGlClientActiveTextureProc;
+#endif
 
 static void OGL_InitDrawContext(OGLViewDefType *viewDefPtr);
 static void OGL_SetStyles(OGLSetupInputType *setupDefPtr);
@@ -126,6 +128,12 @@ void OGL_Boot(void)
 		DoFatalAlert("Your video card cannot do 1024x1024 textures, so it is below the game's minimum system requirements.");
 
 
+#if GLC_ENABLED
+			/* INIT FIXED-FUNCTION EMULATION ON TOP OF GLES */
+
+	GLC_Init();
+	SDL_Log("GL: %s / %s", glGetString(GL_VERSION), glGetString(GL_RENDERER));
+#else
 			/* GET GL PROCEDURES */
 			// Necessary on Windows
 
@@ -134,6 +142,7 @@ void OGL_Boot(void)
 
 	gGlClientActiveTextureProc = (PFNGLCLIENTACTIVETEXTUREARBPROC) SDL_GL_GetProcAddress("glClientActiveTexture");
 	GAME_ASSERT(gGlClientActiveTextureProc);
+#endif
 
 	OGL_CheckError();
 }
@@ -691,6 +700,10 @@ do_anaglyph:
 
 
            /* SWAP THE BUFFS */
+
+#if GLC_ENABLED && !__ANDROID__
+	GLC_DebugSnapshot(gGameWindowWidth, gGameWindowHeight);	// desktop GLES test build only
+#endif
 
 	SDL_GL_SwapWindow(gSDLWindow);							// end render loop
 

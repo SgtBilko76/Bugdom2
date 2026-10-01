@@ -12,10 +12,15 @@
 
 #include "game.h"
 
+#if GLC_ENABLED
+#define glActiveTextureARB GLC_ActiveTexture
+#define glClientActiveTextureARB GLC_ClientActiveTexture
+#else
 extern PFNGLACTIVETEXTUREPROC gGlActiveTextureProc;
 extern PFNGLCLIENTACTIVETEXTUREARBPROC gGlClientActiveTextureProc;
 #define glActiveTextureARB gGlActiveTextureProc
 #define glClientActiveTextureARB gGlClientActiveTextureProc
+#endif
 
 
 /****************************/
