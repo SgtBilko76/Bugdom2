@@ -1,5 +1,7 @@
 # Bugdom 2 VR (Meta Quest / PICO) - Beta
 
+**Download, install guide, controls and pictures: [portroyale.online/bugdom2.html](https://portroyale.online/bugdom2.html)**
+
 Unofficial standalone-VR build of [Bugdom 2](https://github.com/jorio/Bugdom2) (Pangea Software 2002,
 modern port by Iliyas Jorio), running natively on Android-based headsets via OpenXR.
 
