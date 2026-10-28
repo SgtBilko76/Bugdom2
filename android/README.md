@@ -20,6 +20,8 @@ The first start takes a little longer: the game data (about 180 MB) is unpacked 
 
 ## Controls
 
+![Bugdom 2 VR controller mapping](../docs/controls.webp)
+
 | Controller | In game | In menus |
 |---|---|---|
 | Left stick | Walk | Move through the menu |
